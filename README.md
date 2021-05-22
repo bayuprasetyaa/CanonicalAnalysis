@@ -2,6 +2,8 @@
 
 Canonical Analysis using R Notebook
 
+
+
 **Description of the data**
 For our analysis example, we are going to expand example 1 about investigating the associations between psychological measures and academic achievement measures.We have a data file, mmreg.dta, with 600 observations on eight variables. 
 
