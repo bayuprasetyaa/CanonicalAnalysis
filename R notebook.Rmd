@@ -1,0 +1,147 @@
+---
+title: "Canonical Analysis"
+output: html_notebook
+---
+
+**Canonical Analysis**
+References : https://stats.idre.ucla.edu/r/dae/canonical-correlation-analysis/
+
+**Examples of canonical correlation analysis**
+
+**Example 1.** A researcher has collected data on three psychological variables, four academic variables (standardized test scores) and gender for 600 college freshman. She is interested in how the set of psychological variables relates to the academic variables and gender. In particular, the researcher is interested in how many dimensions (canonical variables) are necessary to understand the association between the two sets of variables.
+
+**Example 2.** A researcher is interested in exploring associations among factors from two multidimensional personality tests, the MMPI and the NEO. She is interested in what dimensions are common between the tests and how much variance is shared between them. She is specifically interested in finding whether the neuroticism dimension from the NEO can account for a substantial amount of shared variance between the two tests.
+
+**Load Library**
+```{r}
+library(ggplot2)
+library(CCA)
+library(vegan)
+library(CCP)
+```
+
+**Description of the data**
+For our analysis example, we are going to expand example 1 about investigating the associations between psychological measures and academic achievement measures.We have a data file, mmreg.dta, with 600 observations on eight variables. 
+
+The psychological variables are 
+
+*   locus_of_control
+*   self_concept
+*   motivation
+
+The academic variables are
+
+*   standardized tests in reading (read)
+*   writing (write)
+*   math (math)
+*   science (science)
+
+the variable female is a zero-one indicator variable with the one indicating a female student.
+```{r}
+mm <- read.csv("https://stats.idre.ucla.edu/stat/data/mmreg.csv")
+colnames(mm) <- c("Control", "Concept", "Motivation", "Read", "Write", "Math", 
+                  "Science", "Sex")
+summary(mm)
+```
+```{r}
+# Tabulasi data 
+xtabs(~Sex, data = mm)
+```
+**Splitting, Grouping Data**
+```{r}
+psych <- mm[, 1:3] 
+acad <- mm[, 4:8] 
+
+X <- psych
+Y <- acad
+```
+**Correlation Structure**
+Struktur korelasi antara variabel X(psikologis) dan variabel Y(academic).
+Ditampilkan dalam 2 bentuk, grafik berwarna dan angka
+```{r}
+correl <- matcor(X, Y) 
+img.matcor(correl, type = 2) 
+```
+```{r}
+matcor(X, Y)
+```
+```{r}
+# Korelasi kanonik
+cc1 <- cc(X, Y)      # function for the R package 'CCA'
+cc1$cor
+```
+```{r}
+barplot(cc1$cor, main = "Canonical correlations for 'cancor()'", col = "gray")
+```
+```{r}
+plt.cc(cc1, var.label = TRUE)
+```
+```{r}
+# raw canonical coefficients
+cc1[3:4]
+```
+The raw canonical coefficients are interpreted in a manner analogous to interpreting regression coefficients i.e., for the variable read, a one unit increase in reading leads to a **.0446** decrease in the first canonical variate of set 2 when all of the other variables are held constant. Here is another example: being female leads to a **.6321** decrease in the dimension 1 for the academic set with the other predictors held constant.
+
+```{r}
+# tests of canonical dimensions
+rho <- cc1$cor
+## Define number of observations, number of variables in first set, and number of variables in the second set.
+n <- dim(psych)[1]
+p <- length(psych)
+q <- length(acad)
+
+## Calculate p-values using the F-approximations of different test statistics:
+p.asym(rho, n, p, q, tstat = "Wilks")
+```
+```{r}
+p.asym(rho, n, p, q, tstat = "Hotelling")
+```
+As shown in the table above, the first test of the canonical dimensions tests whether all three dimensions are significant (they are, F = 11.72), the next test tests whether dimensions 2 and 3 combined are significant (they are, F = 2.94). Finally, the last test tests whether dimension 3, by itself, is significant (it is not). Therefore dimensions 1 and 2 must each be significant while dimension three is not.
+
+When the variables in the model have very different standard deviations, the standardized coefficients allow for easier comparisons among the variables. Next, we’ll compute the standardized canonical coefficients.
+
+```{r}
+# standardized psych canonical coefficients diagonal matrix of psych sd's
+s1 <- diag(sqrt(diag(cov(psych))))
+s1 %*% cc1$xcoef
+```
+```{r}
+s2 <- diag(sqrt(diag(cov(acad))))
+s2 %*% cc1$ycoef
+```
+
+**Sample Write-Up of the Analysis**
+
+There is a lot of variation in the write-ups of canonical correlation analyses. The write-up below is fairly minimal, including only the tests of dimensionality and the standardized coefficients.
+
+Table 1: Tests of Canonical Dimensions
+            
+            Canonical  Mult.
+
+Dimension     | Corr.      | F    | df1    | df2      | p
+
+    1         0.46     11.72   15   1634.7  0.0000
+    2         0.17      2.94    8   1186    0.0029
+    3         0.10      2.16    3    594    0.0911
+
+Table 2: Standardized Canonical Coefficients
+
+                            Dimension
+                           1         2
+Psychological Variables
+    
+    locus of control    -0.84     -0.42
+    self-concept         0.25     -0.84
+    motivation          -0.43      0.69
+
+Academic Variables plus Gender
+
+    reading             -0.45     -0.05
+    writing             -0.35      0.41
+    math                -0.22      0.04
+    science             -0.05     -0.83
+    gender (female=1)   -0.32      0.54
+
+Tests of dimensionality for the canonical correlation analysis, as shown in Table 1, indicate that two of the three canonical dimensions are statistically significant at the .05 level. Dimension 1 had a canonical correlation of 0.46 between the sets of variables, while for dimension 2 the canonical correlation was much lower at 0.17.
+
+Table 2 presents the standardized canonical coefficients for the first two dimensions across both sets of variables. For the psychological variables, the first canonical dimension is most strongly influenced by locus of control (-.84) and for the second dimension self-concept (-.84) and motivation (.69). For the academic variables plus gender, the first dimension was comprised of reading (-.45), writing (-.35) and gender (-.32). For the second dimension writing (.41), science (-.83) and gender (.54) were the dominating variables.
